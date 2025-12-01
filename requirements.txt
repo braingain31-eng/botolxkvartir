@@ -1,3 +1,4 @@
+# Force re-install to fix dependency caching issues in Cloud Build
 aiogram==3.13.1
 beautifulsoup4==4.12.3
 firebase-admin==6.5.0
