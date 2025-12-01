@@ -7,7 +7,8 @@
       "**/node_modules/**"
     ],
     "frameworksBackend": {
-      "region": "us-east4"
+      "region": "us-east4",
+      "entryPoint": "gunicorn --workers 1 --bind :$PORT main:app"
     }
   }
 }

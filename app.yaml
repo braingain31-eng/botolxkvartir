@@ -1,2 +1,0 @@
-runtime: python311
-entrypoint: gunicorn --workers 1 --bind :$PORT main:app
