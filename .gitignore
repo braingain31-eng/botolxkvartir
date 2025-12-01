@@ -1,0 +1,19 @@
+ё# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv
+virtualenv/
+env/
+
+# Temporary and log files
+cached_photos/
+logs/
+temp/
+*.ogg
+
+# IDE / Editor specific files
+.idea/
+.vscode/
+*.swp
