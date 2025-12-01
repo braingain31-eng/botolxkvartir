@@ -64,3 +64,5 @@ def start_scheduler(bot: Bot):
     scheduler.add_job(send_reminders, "cron", hour=10, args=[bot])
     scheduler.start()
     logger.info("Планировщик напоминаний запущен.")
+
+# Force update
