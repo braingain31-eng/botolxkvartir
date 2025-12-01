@@ -4,10 +4,17 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "Dockerfile"
     ],
-    "frameworksBackend": {
-      "region": "us-east4"
-    }
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "botolxkvartir",
+          "region": "us-east4"
+        }
+      }
+    ]
   }
 }
