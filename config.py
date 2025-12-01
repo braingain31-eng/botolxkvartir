@@ -7,7 +7,7 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # URL вашего сервиса в Cloud Run. Замените на ваш реальный URL
-WEBHOOK_BASE_URL = os.getenv("WEBHOOK_BASE_URL", "https://your-cloud-run-service-url.a.run.app")
+WEBHOOK_BASE_URL = os.getenv("WEBHOOK_BASE_URL", "https://botolxkvartir-498789354610.us-east4.run.app")
 
 # API ключи
 GROK_API_KEY = os.getenv("GROK_API_KEY")

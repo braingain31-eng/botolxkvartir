@@ -16,6 +16,6 @@ COPY . .
 # Expose the port Gunicorn will run on
 EXPOSE 8080
 
-# Command to run the web server using Gunicorn with a Uvicorn worker for asyncio support
-# This serves the Flask app defined in main_bot.py.
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "-k", "uvicorn.workers.UvicornWorker", "main_bot:app"]
+# Command to run the web server using Gunicorn with a Uvicorn worker for asyncio support.
+# --preload is used to ensure the APScheduler is started only once in the master process.
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--preload", "-k", "uvicorn.workers.UvicornWorker", "main_bot:app"]
