@@ -1,4 +1,4 @@
-ё# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.pyc
 
@@ -6,6 +6,10 @@ __pycache__/
 .venv
 virtualenv/
 env/
+
+# Secrets - NEVER commit these!
+*.json
+*.env
 
 # Temporary and log files
 cached_photos/
