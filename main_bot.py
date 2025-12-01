@@ -76,10 +76,18 @@ async def startup_logic():
     await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
     logger.info(f"Вебхук установлен на {WEBHOOK_URL}")
 
-    # Планирование задачи парсера
-    scheduler.add_job(run_olx_parser_logic, 'interval', hours=6, misfire_grace_time=300)
+    # Планирование задачи парсера.
+    # Запускаем первую проверку через 1 минуту после старта, чтобы не блокировать запуск сервиса.
+    run_time = datetime.now() + timedelta(minutes=1)
+    scheduler.add_job(
+        run_olx_parser_logic,
+        'interval',
+        hours=6,
+        next_run_time=run_time,
+        misfire_grace_time=300
+    )
     scheduler.start()
-    logger.info("Планировщик запущен. Парсер OLX будет запускаться каждые 6 часов.")
+    logger.info("Планировщик запущен. Парсер OLX будет запускаться каждые 6 часов (первый запуск через 1 минуту).")
 
 async def shutdown_logic():
     """Выполняется при остановке приложения."""
