@@ -4,6 +4,9 @@ FROM python:3.11-slim
 # Set the working directory in the container
 WORKDIR /app
 
+# Set the PORT environment variable
+ENV PORT 8080
+
 # Copy the requirements file
 COPY requirements.txt .
 
@@ -18,5 +21,6 @@ COPY . .
 # Expose the port Gunicorn will run on
 EXPOSE 8080
 
-# Command to run the web server
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--preload", "-k", "uvicorn.workers.UvicornWorker", "main_bot:app"]
+# Command to run the web server using the PORT environment variable
+# Note: We use the shell form of CMD to allow for variable substitution.
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --preload -k uvicorn.workers.UvicornWorker main_bot:app
