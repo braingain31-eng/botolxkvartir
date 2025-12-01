@@ -1,7 +1,11 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot
-from database.models import SessionLocal, User
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from database.firebase_db import db
 from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 REMINDERS = [
     "Вы смотрели виллу, но не связались. Прямая бронь — дешевле!",
@@ -15,24 +19,48 @@ REMINDERS = [
 ]
 
 async def send_reminders(bot: Bot):
-    session = SessionLocal()
-    users = session.query(User).filter(
-        User.paid_until == None,
-        User.viewed_properties != []
-    ).all()
-    for user in users:
-        if user.last_seen < datetime.utcnow() - timedelta(days=1):
-            reminder_idx = len(user.viewed_properties) % 8
-            await bot.send_message(
-                user.user_id,
-                REMINDERS[reminder_idx],
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton("Оплатить 10$", callback_data="pay_7")]
-                ])
-            )
-    session.close()
+    """
+    Отправляет напоминания пользователям, которые просматривали объекты,
+    не имеют активной подписки и не заходили больше суток.
+    """
+    try:
+        users_ref = db.collection('users')
+        docs = users_ref.stream()
+
+        for doc in docs:
+            user = doc.to_dict()
+            user_id = int(doc.id)
+
+            is_unpaid = user.get('paid_until') is None
+            has_viewed = user.get('viewed_properties')
+
+            if is_unpaid and has_viewed:
+                last_seen_str = user.get('last_seen')
+                if last_seen_str:
+                    try:
+                        last_seen_dt = datetime.fromisoformat(last_seen_str)
+                        # Убираем информацию о часовом поясе для сравнения
+                        if last_seen_dt.tzinfo:
+                            last_seen_dt = last_seen_dt.replace(tzinfo=None)
+
+                        if last_seen_dt < datetime.utcnow() - timedelta(days=1):
+                            reminder_idx = len(user['viewed_properties']) % len(REMINDERS)
+                            await bot.send_message(
+                                user_id,
+                                REMINDERS[reminder_idx],
+                                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                                    # В старом коде было pay_7, в тексте 10$. Оставляю pay_10_usd как более логичное
+                                    [InlineKeyboardButton("Оплатить 10$", callback_data="pay_10_usd")]
+                                ])
+                            )
+                    except Exception as e:
+                        logger.error(f"Не удалось отправить напоминание пользователю {user_id}: {e}")
+    except Exception as e:
+        logger.error(f"Ошибка при получении пользователей для напоминаний: {e}")
+
 
 def start_scheduler(bot: Bot):
-    scheduler = AsyncIOScheduler()
+    scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(send_reminders, "cron", hour=10, args=[bot])
     scheduler.start()
+    logger.info("Планировщик напоминаний запущен.")
