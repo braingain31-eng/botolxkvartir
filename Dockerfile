@@ -16,7 +16,6 @@ COPY . .
 # Expose the port Gunicorn will run on
 EXPOSE 8080
 
-# Command to run the web server using Gunicorn for the main entrypoint
-# This will serve the Flask app and keep the container alive.
-# The main.py script will start the bot in a background thread.
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "8", "--timeout", "0", "main:app"]
+# Command to run the web server using Gunicorn with a Uvicorn worker for asyncio support
+# This serves the Flask app defined in main_bot.py.
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "-k", "uvicorn.workers.UvicornWorker", "main_bot:app"]

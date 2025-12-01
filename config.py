@@ -3,15 +3,29 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+# Токен вашего Telegram бота
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+
+# URL вашего сервиса в Cloud Run. Замените на ваш реальный URL
+WEBHOOK_BASE_URL = os.getenv("WEBHOOK_BASE_URL", "https://your-cloud-run-service-url.a.run.app")
+
+# API ключи
 GROK_API_KEY = os.getenv("GROK_API_KEY")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Путь к файлу учетных данных Firebase
 FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH", "service-account.json")
+
+# ID администратора
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
+
+# Учетные данные для Booking API
 BOOKING_PARTNER_ID = os.getenv("BOOKING_PARTNER_ID")
 BOOKING_SECRET = os.getenv("BOOKING_SECRET")
-STRIPE_TOKEN = os.getenv("STRIPE_TOKEN")  # или RAZORPAY_TOKEN
+
+# Токен для платежей
+STRIPE_TOKEN = os.getenv("STRIPE_TOKEN")
 
 # Цены
 WEEK_PRICE_USD = 10.0
@@ -25,6 +39,6 @@ CRYPTO_WALLETS = {
     "USDT_TRC20": "T...your_usdt_trc20_wallet"
 }
 
-# Oxylabs Credentials
+# Учетные данные Oxylabs
 OXYLABS_USERNAME = "andre_7MCmN"
 OXYLABS_PASSWORD = "3avDSV_=w3c739p"
