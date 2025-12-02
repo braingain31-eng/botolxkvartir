@@ -1,5 +1,13 @@
 {
-  "projects": {
-    "default": "botolxkvartir"
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{
+      "source": "**",
+      "run": {
+        "serviceId": "botolxkvartir",
+        "region": "us-east4"
+      }
+    }]
   }
 }

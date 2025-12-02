@@ -1,7 +1,9 @@
+# main_bot.py
 import asyncio
 import logging
 import signal
-from datetime import datetime, timedelta
+from datetime import datetime
+
 from flask import Flask, request, jsonify
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
@@ -10,114 +12,85 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import config
 from handlers import start, search, property, agent, payment, reminders, errors, payment_menu
-# Зависимости для парсера
 from utils.olx_parser import parse_olx_listing
-from database.firebase_db import get_properties
 
-# --- Базовая настройка ---
+# --- Логи ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# --- Flask + Aiogram ---
 app = Flask(__name__)
 bot = Bot(token=config.TELEGRAM_BOT_TOKEN, parse_mode=ParseMode.HTML)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 scheduler = AsyncIOScheduler()
 
+# --- Вебхук ---
 WEBHOOK_PATH = f"/webhook/{config.TELEGRAM_BOT_TOKEN}"
-WEBHOOK_URL = config.WEBHOOK_BASE_URL + WEBHOOK_PATH
+WEBHOOK_URL = f"{config.WEBHOOK_BASE_URL}{WEBHOOK_PATH}"
 
-# --- Логика парсера (интегрирована сюда) ---
-async def run_olx_parser_logic():
-    """Логика парсинга, выполняемая по расписанию."""
-    try:
-        # Проверка времени, чтобы избежать слишком частых запусков (на всякий случай)
-        all_properties = get_properties(limit=1)
-        if all_properties:
-            latest_property = max(all_properties, key=lambda x: x.get('parsed_at', ''))
-            last_parsed_str = latest_property.get('parsed_at')
-            if last_parsed_str:
-                try:
-                    last_parsed_time = datetime.fromisoformat(last_parsed_str.replace('Z', '+00:00'))
-                    time_since_last_parse = datetime.now(last_parsed_time.tzinfo) - last_parsed_time
-                    if time_since_last_parse < timedelta(hours=5.9):
-                        logger.info(f"Парсинг был недавно. Пропускаем запуск.")
-                        return
-                except Exception as e:
-                    logger.warning(f"Ошибка проверки времени последнего парсинга: {e}. Продолжаем.")
-
-        logger.info("Выполняем парсинг OLX по расписанию...")
-        added = await parse_olx_listing()
-        logger.info(f"Парсинг завершён. Добавлено: {added} объектов")
-
-    except Exception as e:
-        logger.error(f"Критическая ошибка при выполнении фонового парсинга: {e}", exc_info=True)
-
-
-# --- Регистрация обработчиков ---
-def register_bot_handlers():
-    """Регистрирует все обработчики сообщений для бота."""
+# --- Регистрация всех хендлеров ---
+def register_handlers():
     start.register_handlers(dp)
     search.register_handlers(dp)
     property.register_handlers(dp)
-    reminders.register_handlers(dp)
     agent.register_handlers(dp)
     payment.register_handlers(dp)
     payment_menu.register_handlers_payment_menu(dp)
+    reminders.register_handlers(dp)
     errors.register_handlers(dp)
-    logger.info("Обработчики бота зарегистрированы.")
+    logger.info("Все обработчики зарегистрированы")
 
-# --- Жизненный цикл приложения (запуск и остановка) ---
+# --- Фоновая задача: парсинг OLX ---
+async def run_olx_parser():
+    try:
+        logger.info("Запуск планового парсинга OLX...")
+        added = await parse_olx_listing()
+        logger.info(f"Парсинг завершён. Добавлено новых объявлений: {added}")
+    except Exception as e:
+        logger.error(f"Ошибка в фоновом парсинге OLX: {e}", exc_info=True)
+
+# --- Запуск при старте контейнера ---
 @app.before_serving
-async def startup_logic():
-    """Выполняется при запуске приложения один раз."""
-    register_bot_handlers()
+async def startup():
+    register_handlers()
 
-    await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
-    logger.info(f"Вебхук установлен на {WEBHOOK_URL}")
+    # Установка вебхука
+    await bot.set_webhook(url=WEBHOOK_URL, drop_pending_updates=True)
+    logger.info(f"Вебхук установлен: {WEBHOOK_URL}")
 
-    # Планирование задачи парсера.
-    # Запускаем первую проверку через 1 минуту после старта, чтобы не блокировать запуск сервиса.
-    run_time = datetime.now() + timedelta(minutes=1)
-    scheduler.add_job(
-        run_olx_parser_logic,
-        'interval',
-        hours=6,
-        next_run_time=run_time,
-        misfire_grace_time=300
-    )
+    # Запуск планировщика
+    scheduler.add_job(run_olx_parser, "interval", hours=6, next_run_time=datetime.now())
     scheduler.start()
-    logger.info("Планировщик запущен. Парсер OLX будет запускаться каждые 6 часов (первый запуск через 1 минуту).")
+    logger.info("Планировщик запущен — парсинг OLX каждые 6 часов")
 
-async def shutdown_logic():
-    """Выполняется при остановке приложения."""
-    logger.info("Начинается остановка...")
+# --- Остановка ---
+async def shutdown():
+    logger.info("Остановка бота...")
     if scheduler.running:
         scheduler.shutdown()
-        logger.info("Планировщик остановлен.")
-    await bot.delete_webhook()
-    logger.info("Вебхук удален.")
+    await bot.delete_webhook(drop_pending_updates=True)
+    await bot.session.close()
+    logger.info("Бот остановлен")
 
-def handle_sigterm(*args):
-    """Корректная остановка по сигналу SIGTERM от Cloud Run."""
-    logger.warning("Получен SIGTERM, инициируется корректная остановка...")
-    asyncio.run(shutdown_logic())
+def handle_sigterm(*_):
+    logger.warning("Получен SIGTERM — graceful shutdown")
+    asyncio.create_task(shutdown())
 
-# Регистрируем обработчик сигнала SIGTERM
 signal.signal(signal.SIGTERM, handle_sigterm)
 
-# --- Маршруты вебхуков ---
+# --- Вебхук-роут ---
 @app.route(WEBHOOK_PATH, methods=["POST"])
-async def handle_webhook():
-    """Основная точка входа для вебхуков Telegram."""
-    update = types.Update.model_validate(request.json, context={"bot": bot})
+async def webhook():
+    update = types.Update.model_validate(request.get_json(force=True), context={"bot": bot})
     await dp.feed_update(bot, update)
-    return "", 200
+    return jsonify({"status": "ok"})
 
+# --- Health check ---
 @app.route("/")
-def index():
-    """Эндпоинт для проверки работоспособности Cloud Run."""
-    return "Бот запущен и готов к работе!", 200
+def health():
+    return "GoaNest Bot жив и работает!", 200
 
-# Блок if __name__ == '__main__' не используется в Cloud Run,
-# так как запуск происходит через Gunicorn.
+# --- Для локального запуска (не используется в Cloud Run) ---
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
