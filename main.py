@@ -14,7 +14,7 @@ import config
 from handlers import start, search, property, agent, payment, reminders, errors, payment_menu
 from utils.olx_parser import parse_olx_listing
 
-# --- Логи ---
+# --- Логи -- -
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
