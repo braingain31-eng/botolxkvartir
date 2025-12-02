@@ -6,7 +6,7 @@ load_dotenv()
 # Токен вашего Telegram бота
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# URL вашего сервиса в Cloud Run. Замените на ваш реальный URL
+# URL вашего сервиса в Cloud Run.
 WEBHOOK_BASE_URL = os.getenv("WEBHOOK_BASE_URL", "https://botolxkvartir-498789354610.us-east4.run.app")
 
 # API ключи
@@ -39,6 +39,6 @@ CRYPTO_WALLETS = {
     "USDT_TRC20": "T...your_usdt_trc20_wallet"
 }
 
-# Учетные данные Oxylabs
-OXYLABS_USERNAME = "andre_7MCmN"
-OXYLABS_PASSWORD = "3avDSV_=w3c739p"
+# Учетные данные Oxylabs (теперь из переменных окружения)
+OXYLABS_USERNAME = os.getenv("OXYLABS_USERNAME")
+OXYLABS_PASSWORD = os.getenv("OXYLABS_PASSWORD")

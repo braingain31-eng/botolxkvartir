@@ -21,6 +21,5 @@ COPY . .
 # Expose the port Gunicorn will run on
 EXPOSE 8080
 
-# Command to run the web server using the PORT environment variable
-# Note: We use the shell form of CMD to allow for variable substitution.
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --preload -k uvicorn.workers.UvicornWorker main_bot:app
+# Command to run the web server for a synchronous application like Flask/Telebot
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 main_bot:app
